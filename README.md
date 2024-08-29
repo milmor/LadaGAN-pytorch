@@ -1,10 +1,11 @@
-## LadaGAN; Official PyTorch implementation
-
-This repo is the official implementation of "[Efficient generative adversarial networks using linear additive-attention Transformers](https://arxiv.org/abs/2401.09596)".
+## LadaGAN &mdash; Official PyTorch implementation
 
 <img src="./images/plot_ffhq.png" width="850px"></img>
 
-By Emilio Morales-Juarez and Gibran Fuentes-Pineda.
+This repository is a reimplementation of [LadaGAN](https://github.com/milmor/LadaGAN) in PyTorch.
+
+> [**Efficient generative adversarial networks using linear additive-attention Transformers**](https://arxiv.org/abs/2401.09596)<br>
+> By Emilio Morales-Juarez and Gibran Fuentes-Pineda.
 
 
 ## Abstract
