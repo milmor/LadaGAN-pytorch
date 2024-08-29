@@ -37,14 +37,6 @@ Using a single 12GB GPU (RTX 3080 Ti) for training on CIFAR-10 and CelebA datase
 | FID| 6.89| - | -| __4.48__ |
 
 
-## Attention maps
-Single head maps training progress:
-
-<img src="./images/ep_cifar.gif" width="250px"></img>
-<img src="./images/attn32_cifar.gif" width="250px"></img>
-<img src="./images/attn16_cifar.gif" width="250px"></img>
-
-
 ## BibTeX
 ```bibtex
 @article{morales2024efficient,
