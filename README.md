@@ -16,7 +16,7 @@ Using a single 12GB GPU (RTX 3080 Ti) for training on CIFAR-10 and CelebA datase
 | Model (CIFAR 10 32x32) | ADM-IP (80 steps) | StyleGAN2 |  VITGAN  | LadaGAN  |
 | :-- |  :------:  |  :------:  |  :------:   |  :------:  |
 | GPUs | Tesla V100 x 2| - |- | __RTX 3080 Ti x 1__ |
-|   #Images | 69M |200M |- | __68M__ |
+|   #Images | 69M |- |- | __68M__ |
 | #Params | 57M | - |- | __19M__ |
 | FLOPs | 9.0B | - | - | __0.7B__ |
 | FID | __2.93__| 5.79 |4.57 | 3.29 |
