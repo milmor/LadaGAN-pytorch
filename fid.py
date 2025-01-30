@@ -106,8 +106,8 @@ def get_fid(real_dir, gen_dir, n_real, n_gen, device, batch_size=50):
     inception = Inception()
     inception.to(device)
     start = time.time()
-    m_file = f'm_{n_real}.npy'
-    s_file = f's_{n_real}.npy'
+    m_file = f'm_{n_real}_pt.npy'
+    s_file = f's_{n_real}_pt.npy'
     # Check if files exist in the directory
     m_path = os.path.join(real_dir, m_file)
     s_path = os.path.join(real_dir, s_file)

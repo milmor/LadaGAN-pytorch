@@ -17,7 +17,6 @@ Use `--data_dir=<data_dir>` and `--fid_real_dir=<fid_real_dir>` to specify the d
 ```bash
 python train.py --data_dir='../datasets/celeba_64_train/' --fid_real_dir='../datasets/celeba_64_train/'
 ```  
-Currently, the model only supports a resolution of 64×64.  
 
 ## FLOPs  
 Training on CIFAR-10 and CelebA using a single 12GB GPU (RTX 3080 Ti) takes less than 40 hours. __Note that these results and the experiments reported in the paper were obtained using the [TensorFlow implementation of LadaGAN](https://github.com/milmor/LadaGAN), which runs twice as fast as the PyTorch implementation due to XLA.__  
@@ -52,12 +51,11 @@ Implementation notes:
 - This model depends on other files that may be licensed under different open source licenses.
 - LadaGAN uses [Differentiable Augmentation](https://arxiv.org/abs/2006.10738). Under BSD 2-Clause "Simplified" License.
 - [FID](https://arxiv.org/abs/1706.08500) evaluation.
-- __Due to subtle differences between the TensorFlow 2 and PyTorch implementations, we had to modify the R1 coefficient.__
-
-
+- Currently, the model only supports patch generation.  
+- ⚠️ Warning: Due to subtle differences between TensorFlow 2 and PyTorch, we modified the R1 coefficient; adjust it if changing resolution.
 ## To-Do  
 - Add bCR  
-- Add support for higher resolutions  
+- Add generator conv decoder 
 
 
 ## BibTeX

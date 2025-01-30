@@ -95,7 +95,7 @@ class SMLadaformer(nn.Module):
         return self.mlp(self.ln_2([x, z])) 
 
 class Generator(nn.Module):
-    def __init__(self, dim=[1024, 256, 64], noise_dim=128, 
+    def __init__(self, img_size=64, dim=[1024, 256, 64], noise_dim=128, 
                 heads=[4, 4, 4], mlp_dim=[512, 512, 512]):
         super(Generator, self).__init__()
         self.init = nn.Sequential(
@@ -109,7 +109,7 @@ class Generator(nn.Module):
         self.conv_1024 = nn.Conv2d(dim[2], dim[2], 3, 1, 1)
         self.block_1024 = SMLadaformer(dim[2], noise_dim, heads[2], mlp_dim[2])
         self.pos_1024 = nn.Parameter(torch.randn(1, 1024, dim[2]))
-        
+        self.patch_size = img_size // 32
         self.ch_conv = nn.Conv2d(dim[2] // 4, 3, 3, 1, 1)
 
     def forward(self, z):
@@ -131,15 +131,16 @@ class Generator(nn.Module):
         x = x.permute(0, 2, 1)
         x += self.pos_1024
         x = self.block_1024([x, z]).permute(0, 2, 1).reshape([B, -1, 32, 32])
-        x = nn.PixelShuffle(2)(x)
+        if self.patch_size != 1:
+            x = x = nn.PixelShuffle(2)(x)
         img = self.ch_conv(x)
         return img
 
 # D BLOCKS        
 
-class DownBlockComp(nn.Module):
+class DownBlock(nn.Module):
     def __init__(self, in_planes, out_planes):
-        super(DownBlockComp, self).__init__()
+        super(DownBlock, self).__init__()
 
         self.main = nn.Sequential(
             nn.Conv2d(in_planes, out_planes, 3, 2, 1, bias=False),
@@ -176,26 +177,29 @@ class Ladaformer(nn.Module):
         return self.mlp(self.ln_2(x)) + x
 
 class Discriminator(nn.Module):
-    def __init__(self, d_enc_dim=[64, 128, 256], d_out_dim=[512, 1024], heads=4, mlp_dim=512):
+    def __init__(self, enc_dim=[64, 128, 256], out_dim=[512, 1024], heads=4, mlp_dim=512):
         super(Discriminator, self).__init__()
-        self.down_from_big = nn.Sequential(
-            nn.Conv2d(3, d_enc_dim[0], 3, 1, 1, bias=False),
+        self.inp_conv = nn.Sequential(
+            nn.Conv2d(3, enc_dim[0], 3, 1, 1, bias=False),
              nn.LeakyReLU(0.2),
-            DownBlockComp(d_enc_dim[0], d_enc_dim[1]),
-            DownBlockComp(d_enc_dim[1], d_enc_dim[2])
         )
-        self.pos_256 = nn.Parameter(torch.randn(1, 256, d_enc_dim[2]))
-        self.block_256 = Ladaformer(256, d_enc_dim[2], heads, mlp_dim)
-        self.conv_256 = nn.Conv2d(d_enc_dim[2] * 4, d_out_dim[0], 3, 1, 1)
+        self.encoder = nn.ModuleList([
+            DownBlock(enc_dim[i], enc_dim[i+1]) for i in range(len(enc_dim)-1)
+        ])
+        self.pos_256 = nn.Parameter(torch.randn(1, 256, enc_dim[2]))
+        self.block_256 = Ladaformer(256, enc_dim[2], heads, mlp_dim)
+        self.conv_256 = nn.Conv2d(enc_dim[2] * 4, out_dim[0], 3, 1, 1)
 
         self.logits = nn.Sequential(
-            nn.Conv2d(d_out_dim[0], d_out_dim[1], 1, 1, 0, bias=False),
+            nn.Conv2d(out_dim[0], out_dim[1], 1, 1, 0, bias=False),
             nn.LeakyReLU(0.2),
-            nn.Conv2d(d_out_dim[1], 1, 4, 1, 0, bias=False),
+            nn.Conv2d(out_dim[1], 1, 4, 1, 0, bias=False),
         )
         
     def forward(self, x):
-        x = self.down_from_big(x)
+        x = self.inp_conv(x)
+        for down in self.encoder:
+            x = down(x)
         B, C, H, W = x.shape
         x = x.reshape([B, C, H * W]).permute([0, 2, 1])
         x += self.pos_256
