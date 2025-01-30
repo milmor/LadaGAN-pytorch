@@ -52,7 +52,7 @@ class AdditiveAttention(nn.Module):
 class SelfModulatedLayerNorm(nn.Module):
     def __init__(self, dim, cond_dim):
         super().__init__()
-        self.param_free_norm = nn.LayerNorm(dim, eps=0.001, elementwise_affine=False)
+        self.param_free_norm = nn.LayerNorm(dim, eps=1e-6, elementwise_affine=False)
         self.h =  nn.Sequential(
             nn.Linear(cond_dim, dim),
             nn.ReLU()
@@ -72,7 +72,7 @@ class SelfModulatedLayerNorm(nn.Module):
         beta = beta.reshape((bs, 1, -1))
 
         out = self.param_free_norm(x)
-        out = out * (1.0 + gamma) + beta
+        out = out * gamma + beta
 
         return out
 
@@ -95,7 +95,8 @@ class SMLadaformer(nn.Module):
         return self.mlp(self.ln_2([x, z])) 
 
 class Generator(nn.Module):
-    def __init__(self, dim, noise_dim, heads, mlp_dim):
+    def __init__(self, dim=[1024, 256, 64], noise_dim=128, 
+                heads=[4, 4, 4], mlp_dim=[512, 512, 512]):
         super(Generator, self).__init__()
         self.init = nn.Sequential(
             nn.Linear(noise_dim, 64 * dim[0], bias=False),
@@ -175,28 +176,28 @@ class Ladaformer(nn.Module):
         return self.mlp(self.ln_2(x)) + x
 
 class Discriminator(nn.Module):
-    def __init__(self, dim, heads, mlp_dim):
+    def __init__(self, d_enc_dim=[64, 128, 256], d_out_dim=[512, 1024], heads=4, mlp_dim=512):
         super(Discriminator, self).__init__()
         self.down_from_big = nn.Sequential(
-            nn.Conv2d(3, dim[0], 3, 1, 1, bias=False),
+            nn.Conv2d(3, d_enc_dim[0], 3, 1, 1, bias=False),
              nn.LeakyReLU(0.2),
-            DownBlockComp(dim[0], dim[1]),
-            DownBlockComp(dim[1], dim[2])
+            DownBlockComp(d_enc_dim[0], d_enc_dim[1]),
+            DownBlockComp(d_enc_dim[1], d_enc_dim[2])
         )
-        self.pos_256 = nn.Parameter(torch.randn(1, 256, dim[2]))
-        self.block_256 = Ladaformer(256, dim[2], heads, mlp_dim)
-        self.conv_256 = nn.Conv2d(dim[2] * 4, dim[3], 3, 1, 1)
+        self.pos_256 = nn.Parameter(torch.randn(1, 256, d_enc_dim[2]))
+        self.block_256 = Ladaformer(256, d_enc_dim[2], heads, mlp_dim)
+        self.conv_256 = nn.Conv2d(d_enc_dim[2] * 4, d_out_dim[0], 3, 1, 1)
 
         self.logits = nn.Sequential(
-            nn.Conv2d(dim[3], dim[4], 1, 1, 0, bias=False),
+            nn.Conv2d(d_out_dim[0], d_out_dim[1], 1, 1, 0, bias=False),
             nn.LeakyReLU(0.2),
-            nn.Conv2d(dim[4], 1, 4, 1, 0, bias=False),
+            nn.Conv2d(d_out_dim[1], 1, 4, 1, 0, bias=False),
         )
         
     def forward(self, x):
         x = self.down_from_big(x)
         B, C, H, W = x.shape
-        x = x.reshape([B, C, H*W]).permute([0, 2, 1])
+        x = x.reshape([B, C, H * W]).permute([0, 2, 1])
         x += self.pos_256
         x = self.block_256(x) 
         x = x.permute([0, 2, 1]).reshape([B, C, H, W])

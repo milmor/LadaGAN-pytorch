@@ -89,7 +89,7 @@ def train(model_dir, data_dir, fid_real_dir,
     # model
     generator = Generator(conf.g_dim, conf.noise_dim, conf.g_heads, conf.g_mlp)
     generator.apply(weights_init)
-    discriminator = Discriminator(conf.d_dim, conf.d_heads, conf.d_mlp)
+    discriminator = Discriminator(conf.d_enc_dim, conf.d_out_dim, conf.d_heads, conf.d_mlp)
     discriminator.apply(weights_init)
     
     g_opt = optim.Adam(
