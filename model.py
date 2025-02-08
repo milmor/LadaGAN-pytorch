@@ -35,18 +35,23 @@ class AdditiveAttention(nn.Module):
 
     def forward(self, x):
         n, device, h = x.shape[1], x.device, self.heads
-        qkv = self.to_qkv(x).chunk(3, dim = -1)
-        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = h), qkv)
+        qkv = self.to_qkv(x).chunk(3, dim=-1)
+        q, k, v = qkv  
 
-        q_attn_logits = rearrange(self.to_q_attn_logits(q), 'b h n () -> b h n') * self.scale
-        q_attn = q_attn_logits.softmax(dim = -1)
+        q_attn_logits = self.q_attn(q) * self.scale  # (b, n, 1)
+        q_attn_logits = rearrange(q_attn_logits, 'b n () -> b n')  
+        q_attn = q_attn_logits.softmax(dim=-1)  # (b, n)
 
-        global_q = einsum('b h n, b h n d -> b h d', q_attn, q)
+        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=h), (q, k, v))
+
+        # Compute global_q
+        global_q = einsum('b n, b h n d -> b h d', q_attn, q)  
         global_q = rearrange(global_q, 'b h d -> b h () d')
 
-        k = k * global_q
+        k = k * global_q  
         u = v * k
         r = rearrange(u, 'b h n d -> b n (h d)')
+
         return self.to_out(r)
 
 class SelfModulatedLayerNorm(nn.Module):
