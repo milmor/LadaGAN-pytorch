@@ -22,7 +22,7 @@ def pixel_upsample(x, H, W):
     return x, H, W, C
 
 class AdditiveAttention(nn.Module):
-    def __init__(self,dim, heads = 8):
+    def __init__(self, dim, heads=8):
         super().__init__()
         self.dim_head = dim // heads
         self.heads = heads
@@ -30,22 +30,23 @@ class AdditiveAttention(nn.Module):
 
         self.to_qkv = nn.Linear(dim, dim * 3)
 
-        self.to_q_attn_logits = nn.Linear(self.dim_head, 1) 
+        self.q_attn = nn.Linear(dim, heads)  # Apply q_attn before rearrange
         self.to_out = nn.Linear(dim, dim)
 
     def forward(self, x):
         n, device, h = x.shape[1], x.device, self.heads
         qkv = self.to_qkv(x).chunk(3, dim=-1)
+        
         q, k, v = qkv  
 
-        q_attn_logits = self.q_attn(q) * self.scale  # (b, n, 1)
-        q_attn_logits = rearrange(q_attn_logits, 'b n () -> b n')  
-        q_attn = q_attn_logits.softmax(dim=-1)  # (b, n)
+        q_attn_logits = self.q_attn(q) * self.scale  # (b, n, h)
+        q_attn_logits = rearrange(q_attn_logits, 'b n h -> b h n')  
+        q_attn = q_attn_logits.softmax(dim=-1) 
 
         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=h), (q, k, v))
 
         # Compute global_q
-        global_q = einsum('b n, b h n d -> b h d', q_attn, q)  
+        global_q = einsum('b h n, b h n d -> b h d', q_attn, q)  
         global_q = rearrange(global_q, 'b h d -> b h () d')
 
         k = k * global_q  
