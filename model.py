@@ -138,7 +138,7 @@ class Generator(nn.Module):
         x += self.pos_1024
         x = self.block_1024([x, z]).permute(0, 2, 1).reshape([B, -1, 32, 32])
         if self.patch_size != 1:
-            x = x = nn.PixelShuffle(2)(x)
+            x = x = nn.PixelShuffle(self.patch_size)(x)
         img = self.ch_conv(x)
         return img
 
